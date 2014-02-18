@@ -1,16 +1,24 @@
+close all;
+
 hConvEnc = comm.ConvolutionalEncoder(poly2trellis(7, [171 133]));
+
 hConvEnc.PuncturePatternSource = 'Property';
 hConvEnc.PuncturePattern = [1;1;0;1;1;0];
-hMod = comm.QPSKModulator('PhaseOffset',pi/4);
+
+% hMod = comm.RectangularQAMModulator;
+hMod=comm.QPSKModulator; 
 hChan = comm.AWGNChannel('NoiseMethod', 'Signal to noise ratio (Eb/No)',...
   'SignalPower', 1, 'SamplesPerSymbol', 1, 'BitsPerSymbol',2);
 
-hDMod = comm.QPSKDemodulator('PhaseOffset',pi/4);
+
+% hDMod = comm.RectangularQAMDemodulator;
+hDMod = comm.QPSKDemodulator;
 hVitDec = comm.ViterbiDecoder(poly2trellis(7, [171 133]), ...
   'InputFormat', 'Hard', 'TerminationMethod','Truncated');
 
 hVitDec.PuncturePatternSource =  'Property';
 hVitDec.PuncturePattern = hConvEnc.PuncturePattern;
+
 % hVitDec.TracebackDepth = 96;
 % hErrorCalc = comm.ErrorRate('ReceiveDelay', hVitDec.TracebackDepth);
 hErrorCalc = comm.ErrorRate;
@@ -21,7 +29,7 @@ EbNoEncoderInput = 2:.5:5; % in dB
 EbNoEncoderOutput = EbNoEncoderInput + 10*log10(2*3/4);
 
 frameLength = 3000; % this value must be an integer multiple of 3
-targetErrors = 300;
+targetErrors = 500;
 maxNumTransmissions = 5e6;
 snr=0;
 
@@ -32,7 +40,7 @@ for n=1:length(EbNoEncoderOutput)
   reset(hVitDec)
 %   snr=EbNoEncoderInput(n);
   hChan.EbNo = EbNoEncoderOutput(n);% Set the channel EbNo value for simulation
-  hChan.SignalPower=EbNoEncoderOutput(n);
+%   hChan.SignalPower=EbNoEncoderOutput(n);
   while (BERVec(2,n) < targetErrors) && (BERVec(3,n) < maxNumTransmissions)
     n
     % Generate binary frames of size specified by the frameLength variable
@@ -41,6 +49,7 @@ for n=1:length(EbNoEncoderOutput)
     encData = step(hConvEnc, data);
     % Modulate the encoded data
     modData = step(hMod, encData);
+    hChan.SignalPower=mean(abs(modData).^2);
 %         modData = step(hMod, data);
     % Pass the modulated signal through an AWGN channel
     channelOutput = step(hChan, modData);
@@ -72,7 +81,7 @@ SPECT = distspec(hVitDec.TrellisStructure,7);
 berfit(EbNoEncoderInput,BERVec(1,:)); % Curve-fitted simulation results
 hold on;
 % semilogy((2:.02:5),bound,'g'); % Theoretical results
-semilogy(EbNoEncoderInput,bercoding(EbNoEncoderInput, 'conv', 'hard', 3/4, SPECT),'m-');
+semilogy(EbNoEncoderInput,bercoding(EbNoEncoderInput, 'conv', 'hard', 1/2, SPECT),'m-');
 legend('Empirical BER','Fit for simulated BER', 'Theoretical bound on BER')
 axis([1 6 10^-6 10^-1])
 
