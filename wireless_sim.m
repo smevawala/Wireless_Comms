@@ -4,7 +4,7 @@
 %Nicobitch
 
 close all;
-rate=0;
+rate=1;
 
 SNR = -4:1:8; %list of SNR values to run algorithm
 %intialize vecs
@@ -12,9 +12,11 @@ SNR = -4:1:8; %list of SNR values to run algorithm
 BERc=zeros(length(SNR));
 tblen =32; %will handle delay for convolution coder
 
-n=3000; %number of samples
+n=3072; %msg length, must be mult of 6
 m=4; %QPSK is 4-QAM
 punc= [1 1 1 0 0 1];
+nsubc=128;
+
 if rate
     coderate = 3/4;
 else
@@ -27,19 +29,8 @@ EbNo_c = SNR -10*log10(log2(m)*coderate);
 
 %loop over SNR values
 for k=1:length(SNR)
-%generate a random vector of 4 symbols
+    k
 X=randi([0 m-1],1,n);
-%modulate
-% Y=qammod(X,m);
-%add noise
-% A=awgn(Y, SNR(k),'measured');
-%demodulate
-% Z=qamdemod(A,m);
-%calculkate bit error rate
-% ber=biterr(Z,X)/(2*n);
-% BER(k)=ber;
-
-% Convolutional Coder
 %convert symbols to binary
 X_bin = reshape((de2bi(X, 2,'left-msb')).',1,n*2); 
 %define a trellis (default chosen) with coderate .5
@@ -52,10 +43,50 @@ else
 end
 %modulate
 Yc=qammod(bin2dec([num2str(code(1:2:end-1)') num2str(code(2:2:end)')])',m);
+
+% parallelize
+Pc=zeros(length(Yc)/128,128);
+for kk=1:length(Yc)/128
+Pc(kk,:)=Yc(1,((kk-1)*128+1):((kk)*128));
+end
+% IFFT
+ifft_sig=ifft(Pc',nsubc)';
+
+% Adding Cyclic Extension
+
+cext_data=zeros(length(Yc)/128,nsubc+32);
+cext_data(:,(1:32))=ifft_sig(:,(nsubc-31:nsubc));
+for i=1:nsubc
+    
+    cext_data(:,(i+32))=ifft_sig(:,i);
+    
+end
+
 %add noise
-Ac=awgn(Yc, SNR(k),'measured');
+% cext_data=Yc;
+Ac=awgn(cext_data, SNR(k),'measured');
+
+%Removing Cyclic Extension
+rxed_sig=zeros(length(Yc)/128,nsubc);
+for i=1:nsubc
+    rxed_sig(:,i)=Ac(:,i+32);    
+end
+
+
+% FFT
+ff_sig=fft(rxed_sig',nsubc)';
+
+%serialize
+
+Sc=zeros(1,length(Yc));
+
+for kkk=1:length(Yc)/128
+    
+    Sc((kkk-1)*128+1:(kkk)*128)=ff_sig(kkk,:);
+end
+
 %demod
-Zc=reshape(de2bi(qamdemod(Ac,m),2,'left-msb').',1,length(Ac)*2);
+Zc=reshape(de2bi(qamdemod(Sc,m),2,'left-msb').',1,length(Sc)*2);
 %decode
 if rate
     d = vitdec(Zc,trellis,tblen,'trunc','hard', punc);
