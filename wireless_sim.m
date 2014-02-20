@@ -4,16 +4,22 @@
 %Nicobitch
 
 close all;
+rate=0;
+
 SNR = -4:1:8; %list of SNR values to run algorithm
 %intialize vecs
 % BER=zeros(length(SNR));
 BERc=zeros(length(SNR));
 tblen =32; %will handle delay for convolution coder
 
-n=20000; %number of samples
+n=3000; %number of samples
 m=4; %QPSK is 4-QAM
-coderate = 1/2;
-
+punc= [1 1 1 0 0 1];
+if rate
+    coderate = 3/4;
+else
+    coderate = 1/2;
+end
 %use the SNR to calculate EbNo for the normal sytem and the convolutional
 %coder
 EbNo = SNR -10*log10(log2(m));
@@ -39,7 +45,11 @@ X_bin = reshape((de2bi(X, 2,'left-msb')).',1,n*2);
 %define a trellis (default chosen) with coderate .5
 trellis = poly2trellis(7,[171 133]);
 %encode
-code = convenc(X_bin,trellis);
+if rate
+    code = convenc(X_bin,trellis, punc);
+else
+    code = convenc(X_bin,trellis);
+end
 %modulate
 Yc=qammod(bin2dec([num2str(code(1:2:end-1)') num2str(code(2:2:end)')])',m);
 %add noise
@@ -47,7 +57,11 @@ Ac=awgn(Yc, SNR(k),'measured');
 %demod
 Zc=reshape(de2bi(qamdemod(Ac,m),2,'left-msb').',1,length(Ac)*2);
 %decode
-d = vitdec(Zc,trellis,tblen,'trunc','hard');
+if rate
+    d = vitdec(Zc,trellis,tblen,'trunc','hard', punc);
+else
+    d = vitdec(Zc,trellis,tblen,'trunc','hard');
+end
 %calculate bit error rate
 ber=biterr(d,X_bin)/(2*n);
 BERc(k)=ber;
