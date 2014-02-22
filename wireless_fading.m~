@@ -4,54 +4,38 @@
 %nicobitch
 
 close all;
-SNR = -4:1:8; %list of SNR values to run algorithm
+SNR = -4:1:20; %list of SNR values to run algorithm
 %intialize vecs
-BERc=zeros(length(SNR));
-tblen =32; %will handle delay for convolution coder
+BER_flat=zeros(length(SNR));
+BER_freq=zeros(length(SNR));
 
 n=3072; %number of samples
 m=4; %QPSK is 4-QAM
 
-rchan=rayleighchan(1e-5,140);
+rchan_flat=rayleighchan(1e-5,1e4);
+rchan_flat.StoreHistory = 1;
+rchan_flat.StorePathGains = 1;
 %use the SNR to calculate EbNo for the normal sytem and the convolutional
 %coder
 EbNo = SNR -10*log10(log2(m));
-EbNo_c = SNR -10*log10(log2(m));
 
 %loop over SNR values
 for k=1:length(SNR)
-%generate a random vector of 4 symbols
-X=randi([0 m-1],1,n);
-%modulate
-Y=qammod(X,m);
-%add noise
-% A=awgn(Y, SNR(k),'measured');
-A=filter(rchan,Y);
-%demodulate
-Z=qamdemod(A,m)./rchan.PathGains;
-%calculkate bit error rate
-ber=biterr(Z,X)/(2*n);
-BERc(k)=ber;
+    %generate a random vector of 4 symbols
+    X=randi([0 m-1],1,n);
+    %modulate
+    Y=qammod(X,m);
+    %add noise
+%     Y =awgn(Y, SNR(k),'measured');
+    A=filter(rchan_flat,Y);
+    A = awgn(A, SNR(k),'measured');
+    %demodulate
+    Z=qamdemod(A./rchan_flat.PathGains.',m);
+    %calculkate bit error rate
+    ber=biterr(Z,X)/(2*n);
+%     ber = sum(Z ~= X)/length(X);
+    BER_flat(k)=ber;
 
-% Convolutional Coder
-%convert symbols to binary
-% X_bin = reshape((de2bi(X, 2,'left-msb')).',1,n*2); 
-% %define a trellis (default chosen) with coderate .5
-% trellis = poly2trellis(7,[171 133]);
-% %encode
-% code = convenc(X_bin,trellis);
-% %modulate
-% Yc=qammod(bin2dec([num2str(code(1:2:end-1)') num2str(code(2:2:end)')])',m);
-% %add noise
-% % Ac=awgn(Yc, SNR(k),'measured');
-% Ac=filter(rchan,Yc);
-% %demod
-% Zc=reshape(de2bi(qamdemod(Ac,m),2,'left-msb').',1,length(Ac)*2);
-% %decode
-% d = vitdec(Zc,trellis,tblen,'trunc','hard');
-% %calculate bit error rate
-% ber=biterr(d,X_bin)/(2*n);
-% BERc(k)=ber;
 end
 
 %plots
@@ -62,11 +46,11 @@ figure
 % SPECT = distspec(trellis,7);
 semilogy(EbNo,berfading(EbNo,'qam',4,1),'m-');
 hold on;
-semilogy(EbNo, BERc,'kx');
+semilogy(EbNo, BER_flat,'kx');
 
 xlabel('EbNo (dB)')
 ylabel('BER')
-title('Waterfall Plots (Convolutional Coder)')
+title('Waterfall Plots')
 legend('theoretical', 'actual')
 
 
