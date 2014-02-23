@@ -4,7 +4,7 @@
 %nicobitch
 
 close all;
-SNR = -4:1:20; %list of SNR values to run algorithm
+SNR = -4:2:20; %list of SNR values to run algorithm
 %intialize vecs
 BER_flat=zeros(length(SNR));
 BER_sel=zeros(length(SNR));
@@ -34,9 +34,10 @@ EbNo = SNR -10*log10(log2(m));
 eq = dfe(5, 5, rls(.99));
 eq.SigConst=qammod(0:3,4);
 % eqlms.RefTap = 4;
-
+bers=zeros(1,10);
 %loop over SNR values
 for k=1:length(SNR)
+    k
     %generate a random vector of 4 symbols
     X=randi([0 m-1],1,n);
     %modulate
@@ -44,20 +45,25 @@ for k=1:length(SNR)
     %add noise
 %     Y =awgn(Y, SNR(k),'measured');
     A=filter(rchan_flat,Y);
-    As=filter(rchan_sel,Y);
+
 %     As = filter(chan, 1, Y);
     A = awgn(A, SNR(k),'measured');
     Ae=A./rchan_flat.PathGains.';
-    As = awgn(As, SNR(k),'measured');
     %demodulate
-    Ase=equalize(eq,As,Y(1:1000));
-    Z=qamdemod(A./rchan_flat.PathGains.',m);
-    Zs=qamdemod(Ase,m);
+    Z=qamdemod(Ae,m);
+
     %calculate bit error rate
 %     ber = sum(Z ~= X)/length(X);
     BER_flat(k)=biterr(Z,X)/(2*n);
-    BER_sel(k)=biterr(Zs,X)/(2*n);
-    
+    for kk=1:10
+        kk
+        As=filter(rchan_sel,Y);
+        As = awgn(As, SNR(k),'measured');
+        Ase=equalize(eq,As,Y(1:1000));
+        Zs=qamdemod(Ase,m);
+        bers(kk)=biterr(Zs,X)/(2*n);
+    end
+    BER_sel(k)=mean(bers);
 end
 
 %plots
