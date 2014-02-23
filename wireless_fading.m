@@ -7,17 +7,33 @@ close all;
 SNR = -4:1:20; %list of SNR values to run algorithm
 %intialize vecs
 BER_flat=zeros(length(SNR));
-BER_freq=zeros(length(SNR));
+BER_sel=zeros(length(SNR));
 
-n=3072; %number of samples
+n=10000; %number of samples
 m=4; %QPSK is 4-QAM
+% delayVector = 1.0e-004 * [0 0.0400 0.0800 0.1200];  % Discrete delays of
+                                                    % four-path channel (s)
+% gainVector = [0 -3 -6 -9];
+
+delayVector = [0 1 2 3 4] * 1e-5;
+gainVector = [0 -4 -6 -9 -14];
 
 rchan_flat=rayleighchan(1e-5,1e4);
 rchan_flat.StoreHistory = 1;
 rchan_flat.StorePathGains = 1;
+
+rchan_sel=rayleighchan(1e-5,1, delayVector, gainVector);
+rchan_sel.StoreHistory = 1;
+rchan_sel.StorePathGains = 1;
+
+% chan = [.986; .845; .237; .123+.31i]
 %use the SNR to calculate EbNo for the normal sytem and the convolutional
 %coder
 EbNo = SNR -10*log10(log2(m));
+% eq = lineareq(8, lms(0.001));
+eq = dfe(5, 5, rls(.99));
+eq.SigConst=qammod(0:3,4);
+% eqlms.RefTap = 4;
 
 %loop over SNR values
 for k=1:length(SNR)
@@ -28,14 +44,19 @@ for k=1:length(SNR)
     %add noise
 %     Y =awgn(Y, SNR(k),'measured');
     A=filter(rchan_flat,Y);
+    As=filter(rchan_sel,Y);
+%     As = filter(chan, 1, Y);
     A = awgn(A, SNR(k),'measured');
+    Ae=A./rchan_flat.PathGains.';
+    As = awgn(As, SNR(k),'measured');
     %demodulate
+    Ase=equalize(eq,As,Y(1:1000));
     Z=qamdemod(A./rchan_flat.PathGains.',m);
-    %calculkate bit error rate
-    ber=biterr(Z,X)/(2*n);
+    Zs=qamdemod(Ase,m);
+    %calculate bit error rate
 %     ber = sum(Z ~= X)/length(X);
-    BER_flat(k)=ber;
-
+    BER_flat(k)=biterr(Z,X)/(2*n);
+    BER_sel(k)=biterr(Zs,X)/(2*n);
     
 end
 
@@ -51,7 +72,18 @@ semilogy(EbNo, BER_flat,'kx');
 
 xlabel('EbNo (dB)')
 ylabel('BER')
-title('Waterfall Plots')
+title('Waterfall Plots- Frequency Fading')
+legend('theoretical', 'actual')
+
+
+figure
+% semilogy(EbNo,berfading(EbNo,'qam',4,1),'m-');
+% hold on;
+semilogy(EbNo, BER_sel,'kx');
+
+xlabel('EbNo (dB)')
+ylabel('BER')
+title('Waterfall Plots- Frequency Selective')
 legend('theoretical', 'actual')
 
 
