@@ -1,7 +1,6 @@
 %% Wireless Comms mini Matlab 2
 %Neema Aggarwal
 %Shivam Mevawala
-%nicobitch
 
 close all;
 SNR = -4:2:20; %list of SNR values to run algorithm
@@ -9,7 +8,7 @@ SNR = -4:2:20; %list of SNR values to run algorithm
 BER_flat=zeros(length(SNR));
 BER_sel=zeros(length(SNR));
 
-n=10000; %number of samples
+n=3072; %number of samples
 m=4; %QPSK is 4-QAM
 % delayVector = 1.0e-004 * [0 0.0400 0.0800 0.1200];  % Discrete delays of
                                                     % four-path channel (s)
@@ -37,7 +36,6 @@ eq.SigConst=qammod(0:3,4);
 bers=zeros(1,10);
 %loop over SNR values
 for k=1:length(SNR)
-    k
     %generate a random vector of 4 symbols
     X=randi([0 m-1],1,n);
     %modulate
@@ -55,11 +53,10 @@ for k=1:length(SNR)
     %calculate bit error rate
 %     ber = sum(Z ~= X)/length(X);
     BER_flat(k)=biterr(Z,X)/(2*n);
-    for kk=1:10
-        kk
+    for kk=1:50
         As=filter(rchan_sel,Y);
         As = awgn(As, SNR(k),'measured');
-        Ase=equalize(eq,As,Y(1:1000));
+        Ase=equalize(eq,As,Y(1:300));
         Zs=qamdemod(Ase,m);
         bers(kk)=biterr(Zs,X)/(2*n);
     end
