@@ -16,13 +16,10 @@ delayVector = [0 1 2 3 4] * 1e-5; % Discrete delays of four-path channel (s)
 gainVector = [0 -4 -6 -9 -14];
 
 rchan_flat=rayleighchan(1e-5,1e4); %Set up the channel fading object
-rchan_flat.StoreHistory = 1; %If this value is 1, channel state information
-%needed by the channel visualization tool is stored. 
-rchan_flat.StorePathGains = 1;%If set to 1, the complex path gain vector is
-%stored.
+rchan_flat.StoreHistory = 1; %If this value is 1, channel state information needed by the channel visualization tool is stored. 
+rchan_flat.StorePathGains = 1;%If set to 1, the complex path gain vector is stored.
 
-rchan_sel=rayleighchan(1e-5,1, delayVector, gainVector);%Set up the
-%channel fading object with delay and gain vecs
+rchan_sel=rayleighchan(1e-5,1, delayVector, gainVector);%Set up the channel fading object with delay and gain vecs
 rchan_sel.StoreHistory = 1;
 rchan_sel.StorePathGains = 1;
 
