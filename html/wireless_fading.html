@@ -1,0 +1,235 @@
+
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html><head>
+      <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <!--
+This HTML was auto-generated from MATLAB code.
+To make changes, update the MATLAB code and republish this document.
+      --><title>Wireless Comms mini Matlab 2</title><meta name="generator" content="MATLAB 8.2"><link rel="schema.DC" href="http://purl.org/dc/elements/1.1/"><meta name="DC.date" content="2014-02-27"><meta name="DC.source" content="wireless_fading.m"><style type="text/css">
+html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,sub,sup,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
+
+html { min-height:100%; margin-bottom:1px; }
+html body { height:100%; margin:0px; font-family:Arial, Helvetica, sans-serif; font-size:10px; color:#000; line-height:140%; background:#fff none; overflow-y:scroll; }
+html body td { vertical-align:top; text-align:left; }
+
+h1 { padding:0px; margin:0px 0px 25px; font-family:Arial, Helvetica, sans-serif; font-size:1.5em; color:#d55000; line-height:100%; font-weight:normal; }
+h2 { padding:0px; margin:0px 0px 8px; font-family:Arial, Helvetica, sans-serif; font-size:1.2em; color:#000; font-weight:bold; line-height:140%; border-bottom:1px solid #d6d4d4; display:block; }
+h3 { padding:0px; margin:0px 0px 5px; font-family:Arial, Helvetica, sans-serif; font-size:1.1em; color:#000; font-weight:bold; line-height:140%; }
+
+a { color:#005fce; text-decoration:none; }
+a:hover { color:#005fce; text-decoration:underline; }
+a:visited { color:#004aa0; text-decoration:none; }
+
+p { padding:0px; margin:0px 0px 20px; }
+img { padding:0px; margin:0px 0px 20px; border:none; }
+p img, pre img, tt img, li img { margin-bottom:0px; } 
+
+ul { padding:0px; margin:0px 0px 20px 23px; list-style:square; }
+ul li { padding:0px; margin:0px 0px 7px 0px; }
+ul li ul { padding:5px 0px 0px; margin:0px 0px 7px 23px; }
+ul li ol li { list-style:decimal; }
+ol { padding:0px; margin:0px 0px 20px 0px; list-style:decimal; }
+ol li { padding:0px; margin:0px 0px 7px 23px; list-style-type:decimal; }
+ol li ol { padding:5px 0px 0px; margin:0px 0px 7px 0px; }
+ol li ol li { list-style-type:lower-alpha; }
+ol li ul { padding-top:7px; }
+ol li ul li { list-style:square; }
+
+.content { font-size:1.2em; line-height:140%; padding: 20px; }
+
+pre, tt, code { font-size:12px; }
+pre { margin:0px 0px 20px; }
+pre.error { color:red; }
+pre.codeinput { padding:10px; border:1px solid #d3d3d3; background:#f7f7f7; }
+pre.codeoutput { padding:10px 11px; margin:0px 0px 20px; color:#4c4c4c; }
+
+@media print { pre.codeinput, pre.codeoutput { word-wrap:break-word; width:100%; } }
+
+span.keyword { color:#0000FF }
+span.comment { color:#228B22 }
+span.string { color:#A020F0 }
+span.untermstring { color:#B20000 }
+span.syscmd { color:#B28C00 }
+
+.footer { width:auto; padding:10px 0px; margin:25px 0px 0px; border-top:1px dotted #878787; font-size:0.8em; line-height:140%; font-style:italic; color:#878787; text-align:left; float:none; }
+.footer p { margin:0px; }
+.footer a { color:#878787; }
+.footer a:hover { color:#878787; text-decoration:underline; }
+.footer a:visited { color:#878787; }
+
+table th { padding:7px 5px; text-align:left; vertical-align:middle; border: 1px solid #d6d4d4; font-weight:bold; }
+table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px solid #d6d4d4; }
+
+
+
+
+
+  </style></head><body><div class="content"><h1>Wireless Comms mini Matlab 2</h1><pre class="codeinput"><span class="comment">%Neema Aggarwal</span>
+<span class="comment">%Shivam Mevawala</span>
+<span class="comment">%Nicolas Castro</span>
+
+close <span class="string">all</span>;
+SNR = -4:2:20; <span class="comment">%list of SNR values to run algorithm</span>
+<span class="comment">%intialize vecs</span>
+BER_flat=zeros(length(SNR));
+BER_sel=zeros(length(SNR));
+
+n=3072; <span class="comment">%number of samples</span>
+m=4; <span class="comment">%QPSK is 4-QAM</span>
+
+delayVector = [0 1 2 3 4] * 1e-5; <span class="comment">% Discrete delays of four-path channel (s)</span>
+gainVector = [0 -4 -6 -9 -14];
+
+rchan_flat=rayleighchan(1e-5,1e4); <span class="comment">%Set up the channel fading object</span>
+rchan_flat.StoreHistory = 1; <span class="comment">%If this value is 1, channel state information needed by the channel visualization tool is stored.</span>
+rchan_flat.StorePathGains = 1;<span class="comment">%If set to 1, the complex path gain vector is stored.</span>
+
+rchan_sel=rayleighchan(1e-5,1, delayVector, gainVector);<span class="comment">%Set up the channel fading object with delay and gain vecs</span>
+rchan_sel.StoreHistory = 1;
+rchan_sel.StorePathGains = 1;
+
+<span class="comment">%use the SNR to calculate EbNo for the normal sytem and the convolutional</span>
+<span class="comment">%coder</span>
+EbNo = SNR -10*log10(log2(m));
+eq = dfe(5, 5, rls(.99)); <span class="comment">%Construct a decision feedback equalizer object</span>
+eq.SigConst=qammod(0:3,4); <span class="comment">%Set the constellation to 4-qam</span>
+bers=zeros(1,10); <span class="comment">%initialize bers</span>
+
+<span class="comment">%loop over SNR values</span>
+<span class="keyword">for</span> k=1:length(SNR)
+    <span class="comment">%generate a random vector of 4 symbols</span>
+    X=randi([0 m-1],1,n);
+    <span class="comment">%modulate</span>
+    Y=qammod(X,m);
+    <span class="comment">%add noise and rayleigh fading</span>
+    A=filter(rchan_flat,Y);
+    A = awgn(A, SNR(k),<span class="string">'measured'</span>);
+    Ae=A./rchan_flat.PathGains.';
+    <span class="comment">%demodulate</span>
+    Z=qamdemod(Ae,m);
+    <span class="comment">%calculate bit error rate</span>
+    BER_flat(k)=biterr(Z,X)/(2*n);
+
+    <span class="comment">%Frequency selective channel mitigation</span>
+    <span class="keyword">for</span> kk=1:50
+        <span class="comment">%add noise and rayleigh fading</span>
+        As=filter(rchan_sel,Y);
+        As = awgn(As, SNR(k),<span class="string">'measured'</span>);
+        <span class="comment">%equalize</span>
+        Ase=equalize(eq,As,Y(1:300));
+        <span class="comment">%demod</span>
+        Zs=qamdemod(Ase,m);
+        <span class="comment">%calculate the BER</span>
+        bers(kk)=biterr(Zs,X)/(2*n);
+    <span class="keyword">end</span>
+    BER_sel(k)=mean(bers);
+<span class="keyword">end</span>
+
+<span class="comment">%plots</span>
+figure
+semilogy(EbNo,berfading(EbNo,<span class="string">'qam'</span>,4,1),<span class="string">'m-'</span>);
+hold <span class="string">on</span>;
+semilogy(EbNo, BER_flat,<span class="string">'kx'</span>);
+
+xlabel(<span class="string">'EbNo (dB)'</span>)
+ylabel(<span class="string">'BER'</span>)
+title(<span class="string">'Waterfall Plots- Frequency Fading'</span>)
+legend(<span class="string">'theoretical'</span>, <span class="string">'actual'</span>)
+
+
+figure
+semilogy(EbNo, BER_sel,<span class="string">'kx'</span>);
+
+xlabel(<span class="string">'EbNo (dB)'</span>)
+ylabel(<span class="string">'BER'</span>)
+title(<span class="string">'Waterfall Plots- Frequency Selective'</span>)
+legend(<span class="string">'actual'</span>)
+</pre><img vspace="5" hspace="5" src="wireless_fading_01.png" alt=""> <img vspace="5" hspace="5" src="wireless_fading_02.png" alt=""> <p class="footer"><br><a href="http://www.mathworks.com/products/matlab/">Published with MATLAB&reg; R2013b</a><br></p></div><!--
+##### SOURCE BEGIN #####
+%% Wireless Comms mini Matlab 2
+%Neema Aggarwal
+%Shivam Mevawala
+%Nicolas Castro
+
+close all;
+SNR = -4:2:20; %list of SNR values to run algorithm
+%intialize vecs
+BER_flat=zeros(length(SNR));
+BER_sel=zeros(length(SNR));
+
+n=3072; %number of samples
+m=4; %QPSK is 4-QAM
+
+delayVector = [0 1 2 3 4] * 1e-5; % Discrete delays of four-path channel (s)
+gainVector = [0 -4 -6 -9 -14];
+
+rchan_flat=rayleighchan(1e-5,1e4); %Set up the channel fading object
+rchan_flat.StoreHistory = 1; %If this value is 1, channel state information needed by the channel visualization tool is stored. 
+rchan_flat.StorePathGains = 1;%If set to 1, the complex path gain vector is stored.
+
+rchan_sel=rayleighchan(1e-5,1, delayVector, gainVector);%Set up the channel fading object with delay and gain vecs
+rchan_sel.StoreHistory = 1;
+rchan_sel.StorePathGains = 1;
+
+%use the SNR to calculate EbNo for the normal sytem and the convolutional
+%coder
+EbNo = SNR -10*log10(log2(m));
+eq = dfe(5, 5, rls(.99)); %Construct a decision feedback equalizer object
+eq.SigConst=qammod(0:3,4); %Set the constellation to 4-qam
+bers=zeros(1,10); %initialize bers
+
+%loop over SNR values
+for k=1:length(SNR)
+    %generate a random vector of 4 symbols
+    X=randi([0 m-1],1,n);
+    %modulate
+    Y=qammod(X,m);
+    %add noise and rayleigh fading
+    A=filter(rchan_flat,Y);
+    A = awgn(A, SNR(k),'measured');
+    Ae=A./rchan_flat.PathGains.';
+    %demodulate
+    Z=qamdemod(Ae,m);
+    %calculate bit error rate
+    BER_flat(k)=biterr(Z,X)/(2*n);
+    
+    %Frequency selective channel mitigation
+    for kk=1:50
+        %add noise and rayleigh fading
+        As=filter(rchan_sel,Y);
+        As = awgn(As, SNR(k),'measured');
+        %equalize
+        Ase=equalize(eq,As,Y(1:300));
+        %demod
+        Zs=qamdemod(Ase,m);
+        %calculate the BER
+        bers(kk)=biterr(Zs,X)/(2*n);
+    end
+    BER_sel(k)=mean(bers);
+end
+
+%plots
+figure 
+semilogy(EbNo,berfading(EbNo,'qam',4,1),'m-');
+hold on;
+semilogy(EbNo, BER_flat,'kx');
+
+xlabel('EbNo (dB)')
+ylabel('BER')
+title('Waterfall Plots- Frequency Fading')
+legend('theoretical', 'actual')
+
+
+figure 
+semilogy(EbNo, BER_sel,'kx');
+
+xlabel('EbNo (dB)')
+ylabel('BER')
+title('Waterfall Plots- Frequency Selective')
+legend('actual')
+
+
+
+##### SOURCE END #####
+--></body></html>
