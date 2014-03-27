@@ -14,7 +14,7 @@ BER_new=zeros(length(SNR));
 BER_tbt=zeros(length(SNR));
 
 
-n=4e6; %number of samples
+n=3e5; %number of samples
 m=2; %BPSK is 2-QAM
 
 % delayVector = [0 1 2 3 4] * 1e-5; % Discrete delays of four-path channel (s)
