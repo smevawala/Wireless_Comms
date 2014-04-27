@@ -19,6 +19,9 @@ nsubc=64; % number of subcarriers
 %use the SNR to calculate EbNo
 EbNo_c = SNR -10*log10(log2(m));
 
+
+delayVector = [0 1 2 3 4] * 1e-5; % Discrete delays of four-path channel (s)
+gainVector = [0 -4 -6 -9 -14];
 rchan_sel=rayleighchan(1e-5,1, delayVector, gainVector);%Set up the
 %channel fading object with delay and gain vecs
 rchan_sel.StoreHistory = 1;
@@ -60,8 +63,18 @@ for i=1:nsubc
     
 end
 
+%filter through chan
+Fc = zeros(size(cext_data));
+PG = zeros(size(cext_data,2), 5, size(cext_data,1));
+for kkk=1:size(cext_data, 1)
+    Fc(kkk, :)=filter(rchan_sel,cext_data(kkk,:));
+    PG(:,:,kkk)=rchan_sel.PathGains;
+end
+
 %add noise
-Ac=awgn(cext_data, SNR(k),'measured');
+Ac=awgn(Fc, SNR(k),'measured');
+
+
 
 %Removing Cyclic Extension
 rxed_sig=zeros(length(Yc)/nsubc,nsubc);
@@ -75,7 +88,6 @@ ff_sig=fft(rxed_sig',nsubc)';
 
 %serialize
 Sc=zeros(1,length(Yc));
-
 for kkk=1:length(Yc)/nsubc
     
     Sc((kkk-1)*nsubc+1:(kkk)*nsubc)=ff_sig(kkk,:);
