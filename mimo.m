@@ -1,4 +1,4 @@
-%% Wireless Comms Mini Matlab OFDM
+%% Wireless Comms Mini Matlab MIMO
 %Neema Aggarwal
 %Shivam Mevawala
 %Nicobitch
