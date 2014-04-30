@@ -10,7 +10,7 @@ BER=zeros(length(SNR));
 BERc=zeros(length(SNR));
 tblen =32; %will handle delay for convolution coder
 
-n=20000; %number of samples
+n=2000; %number of samples
 m=4; %QPSK is 4-QAM
 coderate = 1/2;
 

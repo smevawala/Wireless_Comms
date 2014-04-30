@@ -10,7 +10,7 @@ SNR = -4:1:8; %list of SNR values to run algorithm
 BERc=zeros(length(SNR));
 tblen =16; %will handle delay for convolution coder
 
-n=3072; %msg length, must be mult of 6,4, and 128
+n=3072*20; %msg length, must be mult of 6,4, and 128
 m=2; %QPSK is 2-QAM whick is BPSK
 nsubc=64; % number of subcarriers
 
@@ -21,10 +21,11 @@ EbNo_c = SNR -10*log10(log2(m));
 
 
 delayVector = [0 1 2 3 4] * 1e-5; % Discrete delays of five-path channel (s)
-gainVector = [0 -4 -6 -9 -14];
-rchan_sel=rayleighchan(1e-5,1, delayVector, gainVector);%Set up the
+gainVector = [0 -4 -5 -6 -10];
+taps=1
+rchan_sel=rayleighchan(1e-5,0, 1e-5, 1);%Set up the
 %channel fading object with delay and gain vecs
-rchan_sel.StoreHistory = 1;
+% rchan_sel.StoreHistory = 1;
 rchan_sel.StorePathGains = 1;
 
 %use the SNR to calculate EbNo for the normal sytem and the convolutional
@@ -65,10 +66,10 @@ end
 
 %filter through chan
 Fc = zeros(size(cext_data));
-PG = zeros(size(cext_data,1),size(cext_data,2), 5);
+PG = zeros(size(cext_data,1), taps);
 for kkk=1:size(cext_data, 1)
     Fc(kkk, :)=filter(rchan_sel,cext_data(kkk,:));
-    PG(kkk,:,:)=rchan_sel.PathGains;
+    PG(kkk,:)=rchan_sel.PathGains;
 end
 
 %add noise
@@ -78,31 +79,30 @@ Ac=awgn(Fc, SNR(k),'measured');
 
 %Removing Cyclic Extension
 rxed_sig=zeros(ny,nsubc);
-PGr=zeros(ny,nsubc,5);
+% PGr=zeros(ny,5);
 
 rxed_sig(:,:)=Ac(:,17:end);
-PGr(:,:,:)=PG(:,17:end,:);
 
 % FFT
 ff_sig=fft(rxed_sig',nsubc)';
-PGf=zeros(ny, nsubc, length(gainVector));
-for kkk=1:size(PGr,3)
-    PGf(:,:,kkk)=fft(PGr(:,:,kkk)',nsubc)';
-end
-ZF=zeros(size(ff_sig));
+Ye=zeros(ny, nsubc);
 for kkk=1:ny
-    for kkkk=1:nsubc
-        ZF(kkk,kkkk)=ff_sig(kkk,kkkk)*pinv(reshape(PGf(kkk,kkkk,:),1,5)); 
-    end
+    Ye(kkk,:)=ff_sig(kkk,:)./fft(PG(kkk,:),nsubc);
 end
-
+% ZF=zeros(size(ff_sig));
+% for kkk=1:ny
+%     for kkkk=1:nsubc
+%         ZF(kkk,kkkk)=ff_sig(kkk,kkkk)*pinv(reshape(PGf(kkk,kkkk,:),1,5)); 
+%     end
+% end
 
 %         PGf(kkk,kkkk,:)=pinv(reshape(PGf(kkk,kkkk,:),1,5)); 
 %         ZF(kkk,kkkk)=ff_sig(kkk,kkkk)*PGf(kkk,kkkk,:)
+
 % serialize
 Sc=zeros(1,length(Yc));
 for kkk=1:ny
-    Sc((kkk-1)*nsubc+1:(kkk)*nsubc)=ZF(kkk,:);
+    Sc((kkk-1)*nsubc+1:(kkk)*nsubc)=Ye(kkk,:);
 end
 
 %demodulate
@@ -121,7 +121,7 @@ semilogy(EbNo_c, BERc,'kx');
 
 xlabel('EbNo (dB)')
 ylabel('BER')
-title('Waterfall Plot (Convolutional Coder)')
+title('Waterfall Plot')
 % legend('theoretical', 'actual')
 
 

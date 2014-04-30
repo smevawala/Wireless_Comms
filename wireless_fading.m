@@ -32,9 +32,10 @@ EbNo = SNR -10*log10(log2(m));
 eq = dfe(5, 5, rls(.99)); %Construct a decision feedback equalizer object
 eq.SigConst=qammod(0:3,4); %Set the constellation to 4-qam
 bers=zeros(1,10); %initialize bers
-
+wait=waitbar(0,'Please wait... feggit');
 %loop over SNR values
 for k=1:length(SNR)
+
     %generate a random vector of 4 symbols
     X=randi([0 m-1],1,n);
     %modulate
@@ -49,7 +50,8 @@ for k=1:length(SNR)
     BER_flat(k)=biterr(Z,X)/(2*n);
     
     %Frequency selective channel mitigation
-    for kk=1:50
+    for kk=1:5
+        waitbar((k*5+kk)/(50*length(SNR)),wait)
         %add noise and rayleigh fading
         As=filter(rchan_sel,Y);
         As = awgn(As, SNR(k),'measured');
