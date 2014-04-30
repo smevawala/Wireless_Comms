@@ -10,7 +10,7 @@ SNR = -4:1:12; %list of SNR values to run algorithm
 BERc=zeros(length(SNR));
 tblen =16; %will handle delay for convolution coder
 
-n=3072; %msg length, must be mult of 6,4, and 128
+n=5000; %msg length, must be mult of 6,4, and 128
 m=2; %QPSK is 2-QAM whick is BPSK
 
 %use the SNR to calculate EbNo
