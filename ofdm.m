@@ -44,10 +44,10 @@ X_bin=randi([0 m-1],1,n);
 
 %modulate
 Yc=qammod(X_bin,m);
-
+ny=length(Yc)/nsubc;
 % parallelize
-Pc=zeros(length(Yc)/nsubc,nsubc); 
-for kk=1:length(Yc)/nsubc
+Pc=zeros(ny,nsubc); 
+for kk=1:ny
 Pc(kk,:)=Yc(1,((kk-1)*nsubc+1):((kk)*nsubc));
 end
 % IFFT
@@ -55,7 +55,7 @@ ifft_sig=ifft(Pc',nsubc)';
 
 % Adding Cyclic Extension to enable circular conv
 
-cext_data=zeros(length(Yc)/nsubc,nsubc+16);
+cext_data=zeros(ny,nsubc+16);
 cext_data(:,(1:16))=ifft_sig(:,(nsubc-15:nsubc));
 for i=1:nsubc
     
@@ -65,10 +65,10 @@ end
 
 %filter through chan
 Fc = zeros(size(cext_data));
-PG = zeros(size(cext_data,2), 5, size(cext_data,1));
+PG = zeros(size(cext_data,1),size(cext_data,2), 5);
 for kkk=1:size(cext_data, 1)
     Fc(kkk, :)=filter(rchan_sel,cext_data(kkk,:));
-    PG(:,:,kkk)=rchan_sel.PathGains;
+    PG(kkk,:,:)=rchan_sel.PathGains;
 end
 
 %add noise
@@ -77,20 +77,32 @@ Ac=awgn(Fc, SNR(k),'measured');
 
 
 %Removing Cyclic Extension
-rxed_sig=zeros(length(Yc)/nsubc,nsubc);
-for i=1:nsubc
-    rxed_sig(:,i)=Ac(:,i+16);    
-end
+rxed_sig=zeros(ny,nsubc);
+PGr=zeros(ny,nsubc,5);
 
+rxed_sig(:,:)=Ac(:,17:end);
+PGr(:,:,:)=PG(:,17:end,:);
 
 % FFT
 ff_sig=fft(rxed_sig',nsubc)';
+PGf=zeros(ny, nsubc, length(gainVector));
+for kkk=1:size(PGr,3)
+    PGf(:,:,kkk)=fft(PGr(:,:,kkk)',nsubc)';
+end
+ZF=zeros(size(ff_sig));
+for kkk=1:ny
+    for kkkk=1:nsubc
+        ZF(kkk,kkkk)=ff_sig(kkk,kkkk)*pinv(reshape(PGf(kkk,kkkk,:),1,5)); 
+    end
+end
 
-%serialize
+
+%         PGf(kkk,kkkk,:)=pinv(reshape(PGf(kkk,kkkk,:),1,5)); 
+%         ZF(kkk,kkkk)=ff_sig(kkk,kkkk)*PGf(kkk,kkkk,:)
+% serialize
 Sc=zeros(1,length(Yc));
-for kkk=1:length(Yc)/nsubc
-    
-    Sc((kkk-1)*nsubc+1:(kkk)*nsubc)=ff_sig(kkk,:);
+for kkk=1:ny
+    Sc((kkk-1)*nsubc+1:(kkk)*nsubc)=ZF(kkk,:);
 end
 
 %demodulate

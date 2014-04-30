@@ -5,7 +5,7 @@
 
 close all;
 
-SNR = -4:1:8; %list of SNR values to run algorithm
+SNR = -4:1:12; %list of SNR values to run algorithm
 %intialize vecs
 BERc=zeros(length(SNR));
 tblen =16; %will handle delay for convolution coder
@@ -54,7 +54,7 @@ PGinv=zeros(3,3);
 Ye=zeros(size(Yc));
 for kkk=1:n
    PGinv(:,:)=pathGains(kkk,1,:,:);
-   Ye=Yc*pinv(PGinv);
+   Ye(kkk,:)=Yc(kkk,:)*pinv(PGinv);
 end
 
 
