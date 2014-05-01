@@ -58,11 +58,11 @@ ifft_sig=ifft(Pc',nsubc)';
 
 cext_data=zeros(ny,nsubc+16);
 cext_data(:,(1:16))=ifft_sig(:,(nsubc-15:nsubc));
-for i=1:nsubc
-    
-    cext_data(:,(i+16))=ifft_sig(:,i);
-    
-end
+% for i=1:nsubc
+%     
+%     cext_data(:,(i+16))=ifft_sig(:,i);
+%     
+% end
 
 %filter through chan
 Fc = zeros(size(cext_data));

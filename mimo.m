@@ -8,9 +8,11 @@ close all;
 SNR = -4:3:30; %list of SNR values to run algorithm
 %intialize vecs
 BERc=zeros(length(SNR));
+BERm=zeros(length(SNR));
+BERs=zeros(length(SNR));
 tblen =16; %will handle delay for convolution coder
 
-n=3000; %msg length, must be mult of 6,4, and 128
+n=5000; %msg length, must be mult of 6,4, and 128
 m=2; %QPSK is 2-QAM whick is BPSK
 
 %use the SNR to calculate EbNo
@@ -51,39 +53,49 @@ Xm=qammod(X_bin,m);
 [Fc, pathGains] = step(hMIMO, Xm);
 for kkk=1:n
    [U(kkk,:,:),S(kkk,:,:),V(kkk,:,:)]=svd(reshape(pathGains(kkk,1,:,:),3,3));
-   Ysvd(kkk,:)=reshape(pathGains(kkk,1,:,:),3,3)*(reshape(V(kkk,:,:),3,3)'*X_bin(kkk,:).');
+   Ysvd(kkk,:)=reshape(pathGains(kkk,1,:,:),3,3)*reshape(V(kkk,:,:),3,3)*X_bin(kkk,:).';
 end
 
 
 %add noise
 Yc=awgn(Fc, SNR(k),'measured');
 Ysvdn=awgn(Ysvd, SNR(k),'measured');
-for kkk=1:n
-    Ysvfixed(kkk,:)=reshape(U(kkk,:,:),3,3)'*Ysvdn(kkk,:).';
-end
+
 pginv=zeros(size(pathGains,1),size(pathGains,3), size(pathGains,4));
 PGinv=zeros(3,3);
 Ye=zeros(size(Yc));
+Ym=zeros(size(Yc));
 for kkk=1:n
    PGinv(:,:)=pathGains(kkk,1,:,:);
    Ye(kkk,:)=Yc(kkk,:)*pinv(PGinv);
+   Ym(kkk,:)=Yc(kkk,:)*((PGinv'*PGinv + db2mag(-SNR(k))) \ PGinv');
+   Ysvfixed(kkk,:)=reshape(U(kkk,:,:),3,3)'*Ysvdn(kkk,:).';
 end
 
 
 
 %demodulate
-Zc=qamdemod(Ysvfixed,m);
+Zc=qamdemod(Ye,m);
+Zm=qamdemod(Ym,m);
+Zs=qamdemod(Ysvfixed,m);
 %decode based on coderate
 % d = vitdec(Zc,trellis,tblen,'trunc','hard');
 %calculate bit error rate
 ber=biterr(Zc,X_bin)/(3*n);
 BERc(k)=ber;
+ber=biterr(Zm,X_bin)/(3*n);
+BERm(k)=ber;
+ber=biterr(Zs,X_bin)/(3*n);
+BERs(k)=ber;
 end
 
 % plot BER
 figure
 
 semilogy(EbNo_c, BERc,'kx');
+hold on;
+semilogy(EbNo_c, BERm,'rx');
+semilogy(EbNo_c, BERs,'bx');
 
 xlabel('EbNo (dB)')
 ylabel('BER')
