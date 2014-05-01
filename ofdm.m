@@ -22,8 +22,8 @@ EbNo_c = SNR -10*log10(log2(m));
 
 delayVector = [0 1 2 3 4] * 1e-5; % Discrete delays of five-path channel (s)
 gainVector = [0 -4 -5 -6 -10];
-taps=1
-rchan_sel=rayleighchan(1e-5,0, 1e-5, 1);%Set up the
+taps=5;
+rchan_sel=rayleighchan(1e-5,0, delayVector, gainVector);%Set up the
 %channel fading object with delay and gain vecs
 % rchan_sel.StoreHistory = 1;
 rchan_sel.StorePathGains = 1;

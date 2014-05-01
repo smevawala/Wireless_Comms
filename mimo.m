@@ -5,12 +5,12 @@
 
 close all;
 
-SNR = -4:1:12; %list of SNR values to run algorithm
+SNR = -4:3:30; %list of SNR values to run algorithm
 %intialize vecs
 BERc=zeros(length(SNR));
 tblen =16; %will handle delay for convolution coder
 
-n=5000; %msg length, must be mult of 6,4, and 128
+n=3000; %msg length, must be mult of 6,4, and 128
 m=2; %QPSK is 2-QAM whick is BPSK
 
 %use the SNR to calculate EbNo
@@ -30,7 +30,12 @@ EbNo = SNR -10*log10(log2(m));
 % eq = dfe(5, 5, rls(.99)); %Construct a decision feedback equalizer object
 % eq.SigConst=qammod(0:1,2); %Set the constellation to 4-qam
 bers=zeros(1,10); %initialize bers
-
+U=zeros(n,3,3);
+S=zeros(n,3,3);
+V=zeros(n,3,3);
+Ysvd=zeros(n,3);
+Ysvdn=zeros(n,3);
+Ysvfixed=zeros(n,3);
 %loop over SNR values
 for k=1:length(SNR)
 X_bin=randi([0 m-1],n,3);
@@ -44,11 +49,18 @@ Xm=qammod(X_bin,m);
 
 
 [Fc, pathGains] = step(hMIMO, Xm);
+for kkk=1:n
+   [U(kkk,:,:),S(kkk,:,:),V(kkk,:,:)]=svd(reshape(pathGains(kkk,1,:,:),3,3));
+   Ysvd(kkk,:)=reshape(pathGains(kkk,1,:,:),3,3)*(reshape(V(kkk,:,:),3,3)'*X_bin(kkk,:).');
+end
 
 
 %add noise
 Yc=awgn(Fc, SNR(k),'measured');
-
+Ysvdn=awgn(Ysvd, SNR(k),'measured');
+for kkk=1:n
+    Ysvfixed(kkk,:)=reshape(U(kkk,:,:),3,3)'*Ysvdn(kkk,:).';
+end
 pginv=zeros(size(pathGains,1),size(pathGains,3), size(pathGains,4));
 PGinv=zeros(3,3);
 Ye=zeros(size(Yc));
@@ -60,7 +72,7 @@ end
 
 
 %demodulate
-Zc=qamdemod(Ye,m);
+Zc=qamdemod(Ysvfixed,m);
 %decode based on coderate
 % d = vitdec(Zc,trellis,tblen,'trunc','hard');
 %calculate bit error rate
