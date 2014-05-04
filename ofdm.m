@@ -4,6 +4,8 @@
 %Nico Castro
 
 close all;
+clear all;
+clc;
 
 SNR = -4:1:8; %list of SNR values to run algorithm
 %intialize vecs
